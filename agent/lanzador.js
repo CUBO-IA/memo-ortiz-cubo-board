@@ -118,17 +118,19 @@ Guardá la clase en Drive dentro de la carpeta de CUBO Board, y escribí la sali
 
       // Colocar las tarjetas del agente a la derecha de las del estudiante.
       const maxX = Math.max(0, ...tablero.tarjetas.map((t) => t.x + (t.origen === "agente" ? 300 : 260)));
+      // Altura aproximada de cada tarjeta para apilarlas sin que se tapen.
+      const alto = (t) => 70 + Math.ceil((t.texto?.length ?? 0) / 38) * 20 + (t.puntos?.length ?? 0) * 40 + (t.terminos?.length ?? 0) * 62;
       let y = 40;
       for (const tj of tarjetas) {
         await almacen.agregarTarjeta(tableroId, { origen: "agente", x: maxX + 60, y, ...tj });
-        y += 220;
+        y += alto(tj) + 24;
         if (tj.tipo === "tarea" && tj.fecha) {
           await almacen.agregarTarjeta(tableroId, {
             origen: "agente", tipo: "aprobacion", x: maxX + 60, y,
             texto: `Agendar en tu calendario CUBO Board: "${tj.texto}" para el ${tj.fecha}.`,
             accion: { tipo: "evento", titulo: tj.texto.slice(0, 120), fecha: tj.fecha }, estado: "pendiente",
           });
-          y += 160;
+          y += 200;
         }
       }
       if (tarjetas.length === 0) {

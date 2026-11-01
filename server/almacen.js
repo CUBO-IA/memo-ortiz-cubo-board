@@ -55,11 +55,14 @@ export function crearAlmacen({ ruta }) {
     async agregarTarjeta(tableroId, tarjeta) {
       const tablero = await this.obtener(tableroId);
       if (!tablero) return null;
+      // Sin posición, las tarjetas del estudiante van en una cuadrícula de 3 columnas.
+      const n = tablero.tarjetas.filter((t) => t.origen === "estudiante").length;
       const nueva = {
         id: randomUUID(),
         creado: new Date().toISOString(),
-        x: 40, y: 40,
         ...tarjeta,
+        x: Number.isFinite(Number(tarjeta.x)) ? Math.round(Number(tarjeta.x)) : 40 + (n % 3) * 290,
+        y: Number.isFinite(Number(tarjeta.y)) ? Math.round(Number(tarjeta.y)) : 40 + Math.floor(n / 3) * 230,
       };
       tablero.tarjetas.push(nueva);
       await guardar();
@@ -91,6 +94,14 @@ export function crearAlmacen({ ruta }) {
       Object.assign(tablero, cambios);
       await guardar();
       return tablero;
+    },
+
+    async borrarTablero(tableroId) {
+      const lista = await cargar();
+      const antes = lista.length;
+      tableros = lista.filter((t) => t.id !== tableroId);
+      await guardar();
+      return tableros.length < antes;
     },
 
     async borrarTarjeta(tableroId, tarjetaId) {

@@ -63,6 +63,17 @@ function mostrarEstadoAgente(estadoAgente) {
   el.textContent = textos[estadoAgente] ?? "";
 }
 
+$("#borrarTablero").onclick = async () => {
+  if (!estado.tableroId) return;
+  if (!confirm(`¿Borrar el tablero "${$("#tituloTablero").textContent}" con todas sus tarjetas? No se puede deshacer.`)) return;
+  await api(`/api/tableros/${estado.tableroId}`, { method: "DELETE" });
+  estado.tableroId = null; clearInterval(estado.sondeo);
+  $("#capa").replaceChildren(); estado.tarjetas.clear();
+  $("#tituloTablero").textContent = "Elegí o creá un tablero"; $("#metaTablero").textContent = "";
+  $("#vacio").hidden = false; mostrarEstadoAgente(null);
+  cargarTableros();
+};
+
 $("#formTablero").onsubmit = async (e) => {
   e.preventDefault();
   const t = await api("/api/tableros", {
@@ -200,10 +211,12 @@ function posicionNueva() {
 async function subirArchivos(archivos) {
   if (!estado.tableroId) return alert("Primero creá o elegí un tablero.");
   const fd = new FormData();
+  const p = posicionNueva();
+  fd.append("x", p.x); fd.append("y", p.y);
   [...archivos].forEach((f) => fd.append("archivos", f));
   try {
     const nuevas = await api(`/api/tableros/${estado.tableroId}/archivos`, { method: "POST", body: fd });
-    nuevas.forEach((tj, i) => { const p = posicionNueva(); tj.x = p.x + i * 30; tj.y = p.y + i * 30; pintarTarjeta(tj); });
+    nuevas.forEach((tj) => pintarTarjeta(tj));
     $("#vacio").hidden = true; mostrarEstadoAgente("pendiente"); cargarTableros();
   } catch (e) { alert(e.message); }
 }

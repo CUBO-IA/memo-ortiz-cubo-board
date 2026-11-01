@@ -52,6 +52,12 @@ app.get("/api/tableros/:id", async (req, res) => {
   res.json({ ...tablero, agente: lanzador.estado(req.params.id) });
 });
 
+// Borrar un tablero lo decide el estudiante desde el canvas, con confirmación.
+app.delete("/api/tableros/:id", async (req, res) => {
+  const ok = await almacen.borrarTablero(req.params.id);
+  res.status(ok ? 204 : 404).end();
+});
+
 // Una nota escrita por el estudiante. Es un evento: dispara al agente.
 app.post("/api/tableros/:id/notas", async (req, res) => {
   const texto = String(req.body?.texto ?? "").trim().slice(0, 5000);
@@ -69,9 +75,11 @@ app.post("/api/tableros/:id/archivos", (req, res) => {
   subir.array("archivos")(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     const tarjetas = [];
-    for (const f of req.files ?? []) {
+    for (const [i, f] of (req.files ?? []).entries()) {
+      const x = req.body?.x !== undefined ? Number(req.body.x) + i * 30 : undefined;
+      const y = req.body?.y !== undefined ? Number(req.body.y) + i * 30 : undefined;
       tarjetas.push(await almacen.agregarTarjeta(req.params.id, {
-        origen: "estudiante", tipo: "archivo",
+        origen: "estudiante", tipo: "archivo", x, y,
         archivo: f.filename, nombreOriginal: f.originalname.slice(0, 120), mime: f.mimetype,
       }));
     }

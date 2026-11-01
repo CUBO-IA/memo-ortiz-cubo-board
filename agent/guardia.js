@@ -93,11 +93,22 @@ function decidir() {
     if (accion === "get_file_metadata") return CARPETA_DRIVE_ID && input.fileId === CARPETA_DRIVE_ID ? null : "Solo podés consultar la carpeta de CUBO Board";
     if (accion !== "create_file") return `Acción de Drive no permitida: ${accion}. El agente solo crea archivos en la carpeta de CUBO Board.`;
     if (!CARPETA_DRIVE_ID) return "No hay carpeta de Drive de CUBO Board configurada";
-    if (input.parentId !== CARPETA_DRIVE_ID) return "Solo podés crear archivos con parentId igual a la carpeta de CUBO Board";
-    return null;
+    const esCarpeta = /vnd\.google-apps\.folder/.test(JSON.stringify(input));
+    if (esCarpeta) return input.parentId === CARPETA_DRIVE_ID ? null : "Solo podés crear carpetas directamente dentro de la carpeta de CUBO Board";
+    const carpetaTablero = carpetaDelTablero();
+    if (input.parentId === CARPETA_DRIVE_ID || (carpetaTablero && input.parentId === carpetaTablero)) return null;
+    return "Solo podés crear archivos dentro de la carpeta de CUBO Board o de la carpeta de este tablero";
   }
 
   return `Herramienta no permitida para este agente: ${tool}`;
+}
+
+// La carpeta de Drive de cada tablero la anota el hook registro-drive.js en
+// data/drive/, fuera de lo que el agente puede escribir.
+function carpetaDelTablero() {
+  const archivo = path.join(DATOS, "drive", "carpetas.json");
+  if (!TABLERO_ID || !existsSync(archivo)) return null;
+  try { return JSON.parse(readFileSync(archivo, "utf8"))[TABLERO_ID]?.id ?? null; } catch { return null; }
 }
 
 // Las aprobaciones viven FUERA de la carpeta donde el agente puede escribir.

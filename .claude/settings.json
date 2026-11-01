@@ -57,6 +57,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__claude_ai_Google_Drive__create_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/agent/registro-drive.js\""
+          }
+        ]
+      }
     ]
   }
-}
+}\n

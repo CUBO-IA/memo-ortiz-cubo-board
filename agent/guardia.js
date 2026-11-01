@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const entrada = JSON.parse(readFileSync(0, "utf8"));
 const { tool_name: tool = "", tool_input: input = {}, session_id: sesion = "" } = entrada;
-const { MODO = "analisis", ACCION_ID = "", CALENDARIO_ID = "", CARPETA_DRIVE_ID = "" } = process.env;
+const { MODO = "analisis", ACCION_ID = "", CALENDARIO_ID = "", CALENDARIO_CLASES_ID = "", CARPETA_DRIVE_ID = "" } = process.env;
 
 const dentroDe = (ruta, carpeta) => {
   const abs = path.resolve(RAIZ, String(ruta ?? ""));
@@ -49,12 +49,19 @@ function decidir() {
     return null;
   }
 
-  if (tool === "Skill" || tool === "TodoWrite") return null;
+  if (tool === "Skill" || tool === "TodoWrite" || tool === "ToolSearch") return null;
 
   // Google Calendar
   if (tool.startsWith("mcp__claude_ai_Google_Calendar__")) {
     const accion = tool.split("__").pop();
-    if (["list_calendars", "list_events", "search_events", "get_event"].includes(accion)) return null;
+    if (accion === "list_calendars") return null;
+    if (["list_events", "search_events", "get_event"].includes(accion)) {
+      // Lectura solo del calendario de CUBO Board y del de clases, nunca de los demás de la cuenta.
+      const texto = JSON.stringify(input);
+      const permitidos = [CALENDARIO_ID, CALENDARIO_CLASES_ID].filter(Boolean);
+      if (permitidos.some((id) => texto.includes(id))) return null;
+      return "Solo podés consultar el calendario de CUBO Board y el calendario de clases";
+    }
     if (accion !== "create_event") return `Acción de calendario no permitida: ${accion}. El agente solo crea eventos.`;
     if (MODO !== "accion") return "Crear un evento requiere la aprobación del estudiante. Proponelo en una tarjeta de aprobación.";
     if (!CALENDARIO_ID) return "No hay calendario de CUBO Board configurado";
@@ -72,7 +79,12 @@ function decidir() {
   // Google Drive
   if (tool.startsWith("mcp__claude_ai_Google_Drive__")) {
     const accion = tool.split("__").pop();
-    if (["search_files", "get_file_metadata"].includes(accion)) return null;
+    if (["search_files", "get_file_metadata"].includes(accion)) {
+      // Lectura solo de la carpeta de CUBO Board, nunca del resto del Drive.
+      const texto = JSON.stringify(input);
+      if ((CARPETA_DRIVE_ID && texto.includes(CARPETA_DRIVE_ID)) || /CUBO Board/i.test(texto)) return null;
+      return "Solo podés buscar dentro de la carpeta de CUBO Board";
+    }
     if (accion !== "create_file") return `Acción de Drive no permitida: ${accion}. El agente solo crea archivos.`;
     if (!CARPETA_DRIVE_ID) return "No hay carpeta de Drive de CUBO Board configurada";
     if (!JSON.stringify(input).includes(CARPETA_DRIVE_ID)) return "Solo podés crear archivos dentro de la carpeta de CUBO Board";

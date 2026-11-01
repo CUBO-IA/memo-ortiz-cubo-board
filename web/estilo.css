@@ -26,6 +26,8 @@ input::placeholder { color: var(--apagado); }
   background-size: 28px 28px;
 }
 .lienzo[data-herramienta="mano"] { cursor: grab; }
+.lienzo[data-herramienta="seleccionar"] { cursor: crosshair; }
+.lienzo[data-herramienta="seleccionar"] .tarjeta { cursor: grab; }
 .lienzo.arrastrando { cursor: grabbing; }
 .lienzo[data-herramienta="nota"] { cursor: text; }
 .capa { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
@@ -106,6 +108,8 @@ input::placeholder { color: var(--apagado); }
 }
 .tarjeta:hover, .tarjeta:focus-visible { border-color: var(--borde-claro); outline: none; }
 .tarjeta.moviendo { cursor: grabbing; z-index: 10; border-color: var(--borde-claro); }
+.tarjeta.seleccionada { border-color: #8a8a8a; box-shadow: 0 0 0 1px #8a8a8a; }
+.marco { position: absolute; border: 1px solid var(--borde-claro); background: #ffffff0a; pointer-events: none; border-radius: 4px; }
 .tarjeta.apagada { opacity: .18; }
 .tarjeta[data-origen="agente"] { width: 300px; }
 .tarjeta-cab { display: flex; justify-content: space-between; align-items: center; padding: 10px 10px 0 14px; }

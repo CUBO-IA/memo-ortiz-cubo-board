@@ -15,6 +15,7 @@ const json = (cuerpo) => ({ headers: { "Content-Type": "application/json" }, bod
 const estado = {
   tableroId: null, tarjetas: new Map(), datos: new Map(), vista: { x: 0, y: 0, z: 1 },
   herramienta: "seleccionar", sondeo: null, agente: "listo", archivosPendientes: null, filtro: "",
+  seleccion: new Set(),
 };
 const lienzo = $("#lienzo"), capa = $("#capa"), contTarjetas = $("#tarjetas"), conectores = $("#conectores");
 
@@ -194,29 +195,71 @@ function editarNota(el, tj) {
   cuerpo.addEventListener("keydown", (e) => { if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) cuerpo.blur(); });
 }
 
+// ---------- Selección ----------
+function seleccionar(ids, { agregar = false } = {}) {
+  if (!agregar) estado.seleccion.clear();
+  ids.forEach((id) => estado.seleccion.add(id));
+  for (const [id, el] of estado.tarjetas) el.classList.toggle("seleccionada", estado.seleccion.has(id));
+}
+function alternarSeleccion(id) {
+  if (estado.seleccion.has(id)) estado.seleccion.delete(id); else estado.seleccion.add(id);
+  estado.tarjetas.get(id)?.classList.toggle("seleccionada", estado.seleccion.has(id));
+}
+
 function hacerArrastrable(el, tj) {
   el.addEventListener("pointerdown", (e) => {
     if (estado.herramienta !== "seleccionar" || e.button !== 0) return;
     if (e.target.closest("button, a, [contenteditable]")) return;
     e.stopPropagation();
-    el.setPointerCapture(e.pointerId); el.classList.add("moviendo");
-    const inicio = { x: e.clientX, y: e.clientY, left: el.offsetLeft, top: el.offsetTop };
+    if (e.shiftKey) { alternarSeleccion(tj.id); return; }
+    if (!estado.seleccion.has(tj.id)) seleccionar([tj.id]);
+    // Se mueven juntas todas las tarjetas seleccionadas.
+    const grupo = [...estado.seleccion].map((id) => ({ el: estado.tarjetas.get(id), tj: estado.datos.get(id) }))
+      .filter((g) => g.el && g.tj).map((g) => ({ ...g, left: g.el.offsetLeft, top: g.el.offsetTop }));
+    el.setPointerCapture(e.pointerId);
+    grupo.forEach((g) => g.el.classList.add("moviendo"));
+    const inicio = { x: e.clientX, y: e.clientY };
     let movio = false;
     const mover = (ev) => {
       movio = true;
-      el.style.left = `${inicio.left + (ev.clientX - inicio.x) / estado.vista.z}px`;
-      el.style.top = `${inicio.top + (ev.clientY - inicio.y) / estado.vista.z}px`;
-      tj.x = el.offsetLeft; tj.y = el.offsetTop;
+      const dx = (ev.clientX - inicio.x) / estado.vista.z, dy = (ev.clientY - inicio.y) / estado.vista.z;
+      grupo.forEach((g) => {
+        g.el.style.left = `${g.left + dx}px`; g.el.style.top = `${g.top + dy}px`;
+        g.tj.x = g.el.offsetLeft; g.tj.y = g.el.offsetTop;
+      });
       dibujarConectores(); if (estado.agente !== "listo") mostrarEstadoAgente(estado.agente);
     };
     const soltar = async () => {
-      el.classList.remove("moviendo");
+      grupo.forEach((g) => g.el.classList.remove("moviendo"));
       el.removeEventListener("pointermove", mover); el.removeEventListener("pointerup", soltar);
       dibujarMinimapa();
-      if (movio) await api(`/api/tableros/${estado.tableroId}/tarjetas/${tj.id}`, { method: "PATCH", ...json({ x: tj.x, y: tj.y }) });
+      if (movio) await Promise.all(grupo.map((g) => api(`/api/tableros/${estado.tableroId}/tarjetas/${g.tj.id}`, { method: "PATCH", ...json({ x: g.tj.x, y: g.tj.y }) })));
     };
     el.addEventListener("pointermove", mover); el.addEventListener("pointerup", soltar);
   });
+}
+
+// Marco de selección: arrastrar con la flecha sobre el lienzo vacío.
+function iniciarMarco(e) {
+  const marco = $("#marco"), r = lienzo.getBoundingClientRect();
+  const inicio = { x: e.clientX - r.left, y: e.clientY - r.top };
+  let movio = false;
+  marco.hidden = false;
+  const mover = (ev) => {
+    movio = true;
+    const x = ev.clientX - r.left, y = ev.clientY - r.top;
+    Object.assign(marco.style, { left: `${Math.min(x, inicio.x)}px`, top: `${Math.min(y, inicio.y)}px`, width: `${Math.abs(x - inicio.x)}px`, height: `${Math.abs(y - inicio.y)}px` });
+  };
+  const soltar = (ev) => {
+    window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar);
+    marco.hidden = true; marco.style.width = marco.style.height = "0";
+    if (!movio) { seleccionar([]); return; }
+    const a = aLienzo(Math.min(ev.clientX, inicio.x + r.left), Math.min(ev.clientY, inicio.y + r.top));
+    const b = aLienzo(Math.max(ev.clientX, inicio.x + r.left), Math.max(ev.clientY, inicio.y + r.top));
+    const ids = [...estado.tarjetas].filter(([, el]) => el.offsetLeft < b.x && el.offsetLeft + el.offsetWidth > a.x && el.offsetTop < b.y && el.offsetTop + el.offsetHeight > a.y).map(([id]) => id);
+    seleccionar(ids, { agregar: e.shiftKey });
+  };
+  window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar);
 }
 
 // ---------- Conectores: de cada apunte a las tarjetas que salieron de él ----------
@@ -306,6 +349,7 @@ lienzo.addEventListener("pointerdown", (e) => {
     const { x, y } = aLienzo(e.clientX, e.clientY); crearNotaEn(Math.round(x), Math.round(y)); return;
   }
   if (sobreTarjeta && estado.herramienta !== "mano") return;
+  if (estado.herramienta === "seleccionar") { iniciarMarco(e); return; }
   lienzo.classList.add("arrastrando");
   const inicio = { x: e.clientX - estado.vista.x, y: e.clientY - estado.vista.y };
   const mover = (ev) => { estado.vista.x = ev.clientX - inicio.x; estado.vista.y = ev.clientY - inicio.y; aplicarVista(); };
@@ -372,7 +416,17 @@ window.addEventListener("keydown", (e) => {
   if (k === "n") elegirHerramienta("nota");
   if (k === "u") acciones.subir();
   if (k === "f") { e.preventDefault(); acciones.buscar(); }
-  if (k === "escape") { $("#panelTableros").hidden = true; if (!$("#buscador").hidden) acciones.buscar(); elegirHerramienta("seleccionar"); }
+  if (k === "escape") { $("#panelTableros").hidden = true; if (!$("#buscador").hidden) acciones.buscar(); elegirHerramienta("seleccionar"); seleccionar([]); }
+  if ((k === "backspace" || k === "delete") && estado.seleccion.size) {
+    e.preventDefault();
+    const n = estado.seleccion.size;
+    if (!confirm(n === 1 ? "¿Borrar esta tarjeta?" : `¿Borrar ${n} tarjetas?`)) return;
+    [...estado.seleccion].forEach(async (id) => {
+      await api(`/api/tableros/${estado.tableroId}/tarjetas/${id}`, { method: "DELETE" });
+      estado.tarjetas.get(id)?.remove(); estado.tarjetas.delete(id); estado.datos.delete(id); dibujarConectores(); dibujarMinimapa();
+    });
+    estado.seleccion.clear();
+  }
 });
 
 // ---------- Buscar ----------

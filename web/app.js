@@ -175,7 +175,7 @@ function crearNotaEn(x, y) {
     pintarTarjeta(tj); mostrarEstadoAgente("pendiente"); cargarTableros();
   });
   contTarjetas.append(el);
-  cuerpo.focus();
+  requestAnimationFrame(() => cuerpo.focus());
   elegirHerramienta("seleccionar");
 }
 
@@ -301,6 +301,8 @@ lienzo.addEventListener("pointerdown", (e) => {
   if (e.button !== 0) return;
   const sobreTarjeta = e.target.closest(".tarjeta");
   if (estado.herramienta === "nota" && !sobreTarjeta) {
+    e.preventDefault(); // que el clic no le robe el foco a la nota recién creada
+    if (!estado.tableroId) { abrirPanel(); return; }
     const { x, y } = aLienzo(e.clientX, e.clientY); crearNotaEn(Math.round(x), Math.round(y)); return;
   }
   if (sobreTarjeta && estado.herramienta !== "mano") return;

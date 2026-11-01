@@ -70,6 +70,8 @@ export function crearLanzador({ raiz, almacen }) {
   }
 
   return {
+    config: leerEnv,
+
     estado(tableroId) {
       return estados.get(tableroId) ?? "listo";
     },

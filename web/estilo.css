@@ -65,6 +65,10 @@ input::placeholder { color: var(--apagado); }
 .zoom button { width: 30px; height: 30px; border-radius: 50%; font-size: 16px; }
 .zoom button:hover { background: #161616; color: var(--texto); }
 .zoom span { min-width: 46px; text-align: center; font-size: 12px; }
+.enlaces { position: fixed; right: 22px; bottom: 166px; z-index: 5; display: flex; gap: 6px; }
+.enlaces a { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: #0a0a0a; border: 1px solid var(--borde); color: var(--tenue); font-size: 12px; text-decoration: none; }
+.enlaces a:hover { color: var(--texto); border-color: var(--borde-claro); }
+.enlaces svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .minimapa { position: fixed; right: 22px; bottom: 22px; z-index: 5; width: 220px; height: 132px; background: #070707; border: 1px solid var(--borde); border-radius: 10px; cursor: pointer; }
 
 /* Buscar */
@@ -138,6 +142,7 @@ input::placeholder { color: var(--apagado); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 720px) {
   .minimapa { display: none; }
+  .enlaces { bottom: 22px; }
   .herramientas { left: 10px; }
   .panel { left: 62px; width: calc(100vw - 80px); }
 }

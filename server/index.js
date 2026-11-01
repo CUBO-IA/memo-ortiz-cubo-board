@@ -76,6 +76,15 @@ app.use("/archivos", express.static(ARCHIVOS, {
   },
 }));
 
+// Enlaces a la carpeta de Drive y al calendario CUBO Board (los IDs no son secretos).
+app.get("/api/enlaces", async (_req, res) => {
+  const env = await lanzador.config();
+  res.json({
+    drive: env.CARPETA_DRIVE_ID ? `https://drive.google.com/drive/folders/${encodeURIComponent(env.CARPETA_DRIVE_ID)}` : null,
+    calendario: env.CALENDARIO_ID ? `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(env.CALENDARIO_ID)}` : null,
+  });
+});
+
 app.get("/api/tableros", async (_req, res) => res.json(await almacen.listar()));
 
 app.post("/api/tableros", async (req, res) => {

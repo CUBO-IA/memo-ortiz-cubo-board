@@ -417,6 +417,12 @@ $("#primeroCancelar").onclick = () => { estado.archivosPendientes = null; $("#di
 
 // ---------- Arranque ----------
 (async () => {
+  try {
+    const enlaces = await api("/api/enlaces");
+    for (const [id, url] of [["#enlaceDrive", enlaces.drive], ["#enlaceCalendario", enlaces.calendario]]) {
+      if (url) { $(id).href = url; $(id).hidden = false; }
+    }
+  } catch { /* sin enlaces */ }
   const lista = await cargarTableros();
   let ultimo = null;
   try { ultimo = localStorage.getItem("cubo-board:ultimo"); } catch { /* sin almacenamiento */ }

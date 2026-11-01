@@ -65,7 +65,7 @@ input::placeholder { color: var(--apagado); }
 .zoom button { width: 30px; height: 30px; border-radius: 50%; font-size: 16px; }
 .zoom button:hover { background: #161616; color: var(--texto); }
 .zoom span { min-width: 46px; text-align: center; font-size: 12px; }
-.minimapa { position: fixed; left: 22px; bottom: 70px; z-index: 5; width: 220px; height: 132px; background: #070707; border: 1px solid var(--borde); border-radius: 10px; cursor: pointer; }
+.minimapa { position: fixed; right: 22px; bottom: 22px; z-index: 5; width: 220px; height: 132px; background: #070707; border: 1px solid var(--borde); border-radius: 10px; cursor: pointer; }
 
 /* Buscar */
 .buscador { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 6; width: min(420px, 80vw); }

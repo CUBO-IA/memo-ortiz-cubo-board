@@ -35,7 +35,7 @@ async function abrirTablero(id) {
   $("#metaTablero").textContent = [t.curso, t.fecha].filter(Boolean).join(" · ");
   $("#capa").replaceChildren();
   estado.tarjetas.clear();
-  t.tarjetas.forEach(pintarTarjeta);
+  t.tarjetas.forEach((tj) => pintarTarjeta(tj));
   $("#vacio").hidden = t.tarjetas.length > 0;
   mostrarEstadoAgente(t.agente);
   cargarTableros();

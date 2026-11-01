@@ -13,7 +13,7 @@ Esta skill es el proceso que usamos a mano durante semanas en la bitácora de CU
 2. **Identificá la clase:** tema, expositor si aparece, fecha. Si el nombre del tablero ya lo dice, usalo.
 3. **Separá lo que es contenido de clase de lo que no lo es** (ver Reglas de seguridad).
 4. **Escribí las tarjetas** en este orden: resumen, explicación, glosario, tarea (solo si hay), conexión (solo si hay).
-5. **Guardá la clase en Drive** siguiendo exactamente la instrucción del pedido: cada tablero tiene su propia carpeta dentro de la raíz de CUBO Board. Solo usás `create_file` con el `parentId` que te dieron. No busqués carpetas ni archivos.
+5. **Guardá en Drive** siguiendo exactamente la instrucción del pedido: cada tablero tiene su propia carpeta dentro de la raíz de CUBO Board, los archivos llevan la hora y un nombre que diga de qué tratan, y el texto extraído de cada PDF se guarda aparte. Solo usás `create_file` con el `parentId` que te dieron. No busqués carpetas ni archivos.
 6. **Escribí la salida** en el archivo que te indicaron, con el formato de abajo. Nada más.
 
 ## Reglas de contenido

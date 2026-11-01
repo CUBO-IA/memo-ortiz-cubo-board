@@ -68,9 +68,14 @@ export function crearLanzador({ raiz, almacen }) {
   // Cada tablero tiene su propia carpeta en Drive, dentro de la raíz de CUBO Board.
   function instruccionDrive(env, tablero) {
     if (!env.CARPETA_DRIVE_ID) return "No hay carpeta de Drive configurada: saltá ese paso y decilo en la razón.";
-    const nombre = `${tablero.fecha} · ${tablero.nombre}`.replace(/["\\]/g, "");
-    if (tablero.carpetaDrive) return `En Drive, guardá la clase como archivo de texto llamado "clase.txt" (si ya existe uno, llamalo "clase-${new Date().toISOString().slice(11, 16).replace(":", "")}.txt") con create_file y parentId exactamente ${tablero.carpetaDrive}, que es la carpeta de este tablero. No busqués ni crees otras carpetas.`;
-    return `En Drive, primero creá una carpeta llamada "${nombre}" con create_file (mimeType application/vnd.google-apps.folder) y parentId exactamente ${env.CARPETA_DRIVE_ID}, la raíz de CUBO Board. Después guardá la clase como archivo de texto "clase.txt" con create_file y parentId igual al id de la carpeta recién creada. No busqués nada.`;
+    const nombre = `${tablero.fecha} · ${tablero.nombre}`.replace(/["\\/]/g, "");
+    const hora = new Date().toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/El_Salvador" });
+    const archivos = `Guardá en esa carpeta, con create_file (contentMimeType text/plain, disableConversionToGoogleType true):
+- la clase como "${hora} · <tema en 3 a 6 palabras>.txt", donde el tema lo sacás del contenido (por ejemplo "${hora} · Grados de libertad del robot.txt"); nunca uses un nombre genérico como "clase.txt";
+- por cada PDF o archivo de texto que leíste, su texto extraído como "${hora} · Apuntes · <nombre original sin extensión>.txt".
+Las imágenes y hojas de cálculo no se suben a Drive (quedan en el tablero).`;
+    if (tablero.carpetaDrive) return `En Drive, la carpeta de este tablero tiene id ${tablero.carpetaDrive}; usala como parentId. ${archivos} No busqués ni crees otras carpetas.`;
+    return `En Drive, primero creá una carpeta llamada "${nombre}" con create_file (mimeType application/vnd.google-apps.folder) y parentId exactamente ${env.CARPETA_DRIVE_ID}, la raíz de CUBO Board. Luego, usando como parentId el id de la carpeta recién creada: ${archivos} No busqués nada.`;
   }
 
   async function leerJson(ruta) {

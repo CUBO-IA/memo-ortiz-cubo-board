@@ -143,7 +143,8 @@ function pintarTarjeta(tj, el) {
   }
   if (tj.tipo === "aprobacion") {
     pie.hidden = false;
-    if (tj.estado === "aprobada") pie.textContent = "Aprobada ✓";
+    const estados = { ejecutando: "Agendando en tu calendario…", agendada: "Agendada en tu calendario ✓", fallo: "No se pudo agendar. Revisá logs/agente.log" };
+    if (estados[tj.estado]) pie.textContent = estados[tj.estado];
     else {
       const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = "Aprobar";
       b.onclick = async (e) => {

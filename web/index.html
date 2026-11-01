@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CUBO Board</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<aside class="lateral">
+  <div class="marca"><span class="cubo"></span>CUBO <b>Board</b></div>
+  <p class="lema">Poné tus apuntes. El tablero se ordena solo.</p>
+
+  <form id="formTablero" class="nuevo">
+    <input id="nombreTablero" placeholder="Nombre de la clase" maxlength="120" required>
+    <input id="cursoTablero" placeholder="Curso (ej. CUBO AI)" maxlength="80">
+    <input id="fechaTablero" type="date">
+    <button class="btn" type="submit">Nuevo tablero</button>
+  </form>
+
+  <p class="etiqueta">Tableros</p>
+  <ul id="listaTableros" class="lista"></ul>
+
+  <div class="leyenda">
+    <span><i class="punto estudiante"></i>Tus tarjetas</span>
+    <span><i class="punto agente"></i>Del agente</span>
+    <span><i class="punto alerta"></i>Sospechoso</span>
+    <span><i class="punto aprobacion"></i>Espera tu aprobación</span>
+  </div>
+</aside>
+
+<main class="escenario">
+  <header class="barra">
+    <div>
+      <h1 id="tituloTablero">Elegí o creá un tablero</h1>
+      <p id="metaTablero" class="meta"></p>
+    </div>
+    <div class="acciones">
+      <span id="estadoAgente" class="estado" hidden></span>
+      <label class="btn btn-ghost">Subir archivos
+        <input id="archivos" type="file" multiple hidden
+               accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.md,.csv,.xlsx">
+      </label>
+    </div>
+  </header>
+
+  <div id="lienzo" class="lienzo">
+    <div id="capa" class="capa"></div>
+    <div id="vacio" class="vacio">
+      <p>Arrastrá fotos, PDF, Excel o notas aquí.</p>
+      <p class="meta">También podés escribir una nota abajo.</p>
+    </div>
+    <div id="soltar" class="soltar" hidden>Soltá para subir</div>
+  </div>
+
+  <form id="formNota" class="nota-rapida">
+    <textarea id="textoNota" rows="2" maxlength="5000"
+              placeholder="Escribí una nota de clase… (Enter para guardar, Shift+Enter para nueva línea)"></textarea>
+    <button class="btn" type="submit">Guardar nota</button>
+  </form>
+</main>
+
+<template id="tplTarjeta">
+  <article class="tarjeta">
+    <header class="tarjeta-cab">
+      <span class="tarjeta-tipo"></span>
+      <button class="cerrar" title="Borrar tarjeta" type="button">×</button>
+    </header>
+    <div class="tarjeta-cuerpo"></div>
+    <footer class="tarjeta-pie" hidden></footer>
+  </article>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -94,13 +94,15 @@ npm start                   # http://127.0.0.1:8790
 
 **Los IDs del `.env`.** Creá en esa cuenta un calendario llamado *CUBO Board* y una carpeta de Drive llamada *CUBO Board*. El ID del calendario está en su configuración, sección "Integrar calendario". El ID de la carpeta es lo que va después de `folders/` en su URL. `CALENDARIO_CLASES_ID` es opcional: el calendario de tu curso, que el agente solo lee. El `.env` lleva únicamente IDs, no llaves, y nunca se sube.
 
-**Usar.** Creá un tablero con el nombre de la clase, arrastrá tus apuntes o escribí una nota. En menos de un minuto aparecen las tarjetas del agente en otro color. Si detectó una tarea, aprobá agendarla con un clic.
+**Usar.** Arrastrá tus apuntes al lienzo negro: la primera vez te pregunta de qué clase son y crea el tablero. Desde ahí todo lo que sueltes cae en ese tablero. Con la herramienta de nota (o doble clic en el lienzo) escribís directo en el canvas. Debajo de lo último que subiste aparece "Leyendo tus apuntes…" y en menos de un minuto llegan las tarjetas del agente, unidas con una línea a los apuntes de donde salieron. Si detectó una tarea, aprobá agendarla con un clic.
+
+**Herramientas** (barra izquierda): subir archivos `U`, tableros, seleccionar `V`, mover el lienzo `H`, nota `N`, buscar `F`, borrar tablero. Zoom con `⌘` + rueda o los botones de abajo; el minimapa lleva a cualquier parte.
 
 ## Estructura
 
 ```text
 server/        servidor local (Express): tableros, archivos, API
-web/           el canvas, sin librerías
+web/           el canvas, sin librerías (logo, isotipo, estilos, app.js)
 agent/         sistema.md, lanzador.js, guardia.js, validar.js, repaso.js
 .claude/       settings.json (permisos y hook) y skills/
 tests/injection/   tres ataques, el corredor y el informe

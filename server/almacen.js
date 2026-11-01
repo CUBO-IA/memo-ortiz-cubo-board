@@ -85,6 +85,14 @@ export function crearAlmacen({ ruta }) {
       return tarjeta;
     },
 
+    async actualizarTablero(tableroId, cambios) {
+      const tablero = await this.obtener(tableroId);
+      if (!tablero) return null;
+      Object.assign(tablero, cambios);
+      await guardar();
+      return tablero;
+    },
+
     async borrarTarjeta(tableroId, tarjetaId) {
       const tablero = await this.obtener(tableroId);
       if (!tablero) return false;

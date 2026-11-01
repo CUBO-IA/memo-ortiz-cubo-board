@@ -1,0 +1,61 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Skill",
+      "Bash(pdftotext *)",
+      "Write(./data/trabajo/**)",
+      "mcp__claude_ai_Google_Calendar__list_calendars",
+      "mcp__claude_ai_Google_Calendar__list_events",
+      "mcp__claude_ai_Google_Calendar__search_events",
+      "mcp__claude_ai_Google_Calendar__get_event",
+      "mcp__claude_ai_Google_Calendar__create_event",
+      "mcp__claude_ai_Google_Drive__search_files",
+      "mcp__claude_ai_Google_Drive__get_file_metadata",
+      "mcp__claude_ai_Google_Drive__create_file"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./data/tableros.json)",
+      "Read(~/.claude/**)",
+      "Read(~/.claude.json)",
+      "Edit",
+      "MultiEdit",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "mcp__claude_ai_Google_Calendar__delete_event",
+      "mcp__claude_ai_Google_Calendar__update_event",
+      "mcp__claude_ai_Google_Calendar__respond_to_event",
+      "mcp__claude_ai_Google_Calendar__suggest_time",
+      "mcp__claude_ai_Google_Drive__trash_file",
+      "mcp__claude_ai_Google_Drive__share_file",
+      "mcp__claude_ai_Google_Drive__update_file",
+      "mcp__claude_ai_Google_Drive__copy_file",
+      "mcp__claude_ai_Google_Drive__read_file_content",
+      "mcp__claude_ai_Google_Drive__download_file_content",
+      "mcp__claude_ai_Google_Drive__list_recent_files",
+      "mcp__claude_ai_Gmail__*",
+      "mcp__claude_ai_Google_Docs__*",
+      "mcp__claude_ai_Dropbox__*",
+      "mcp__claude_ai_Linear__*"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/agent/guardia.js\"",
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}

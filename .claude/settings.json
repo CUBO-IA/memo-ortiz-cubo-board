@@ -11,7 +11,6 @@
       "mcp__claude_ai_Google_Calendar__search_events",
       "mcp__claude_ai_Google_Calendar__get_event",
       "mcp__claude_ai_Google_Calendar__create_event",
-      "mcp__claude_ai_Google_Drive__search_files",
       "mcp__claude_ai_Google_Drive__get_file_metadata",
       "mcp__claude_ai_Google_Drive__create_file",
       "Write",
@@ -43,7 +42,8 @@
       "mcp__claude_ai_Gmail__*",
       "mcp__claude_ai_Google_Docs__*",
       "mcp__claude_ai_Dropbox__*",
-      "mcp__claude_ai_Linear__*"
+      "mcp__claude_ai_Linear__*",
+      "mcp__claude_ai_Google_Drive__search_files"
     ]
   },
   "hooks": {

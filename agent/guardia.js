@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Guardia: hook PreToolUse. Claude Code lo ejecuta ANTES de cada herramienta
-// que el agente quiere usar. Decide en código, sin modelo: lo que no cumple
-// una regla se bloquea (exit 2) y el motivo vuelve al agente. Todo queda en
-// logs/acciones.jsonl, haya pasado o no.
+// que el agente quiere usar. Decide en código, sin modelo, comparando campos
+// exactos: lo que no cumple una regla se bloquea (exit 2) y el motivo vuelve
+// al agente. Todo queda en logs/acciones.jsonl, haya pasado o no.
 import { appendFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,92 +10,99 @@ import { fileURLToPath } from "node:url";
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const entrada = JSON.parse(readFileSync(0, "utf8"));
 const { tool_name: tool = "", tool_input: input = {}, session_id: sesion = "" } = entrada;
-const { MODO = "analisis", ACCION_ID = "", CALENDARIO_ID = "", CALENDARIO_CLASES_ID = "", CARPETA_DRIVE_ID = "" } = process.env;
+const {
+  MODO = "analisis", ACCION_ID = "", TABLERO_ID = "",
+  CALENDARIO_ID = "", CALENDARIO_CLASES_ID = "", CARPETA_DRIVE_ID = "",
+} = process.env;
 
 const dentroDe = (ruta, carpeta) => {
-  const abs = path.resolve(RAIZ, String(ruta ?? ""));
+  if (typeof ruta !== "string" || !ruta) return false;
+  const abs = path.resolve(RAIZ, ruta);
   return abs === carpeta || abs.startsWith(carpeta + path.sep);
 };
+const limpio = (s) => String(s ?? "").replace(/[^\w-]/g, "");
 const DATOS = path.join(RAIZ, "data");
 const ARCHIVOS = path.join(DATOS, "archivos");
 const TRABAJO = path.join(DATOS, "trabajo");
+const MI_TRABAJO = path.join(TRABAJO, limpio(TABLERO_ID));
 const SKILLS = path.join(RAIZ, ".claude", "skills");
+const SKILLS_PERMITIDAS = ["clase-cubo", "pdf"];
 
 function decidir() {
-  // Lectura local: solo los archivos subidos, la carpeta de trabajo y las skills.
+  // Lectura local: solo los apuntes subidos, la carpeta de trabajo y las dos skills.
   if (tool === "Read" || tool === "Glob" || tool === "Grep") {
-    const ruta = input.file_path ?? input.path ?? RAIZ;
-    if (/(^|\/)\.env/.test(String(ruta))) return "Está prohibido leer archivos .env";
-    if (dentroDe(ruta, ARCHIVOS) || dentroDe(ruta, TRABAJO) || dentroDe(ruta, SKILLS)) return null;
-    return `Solo podés leer dentro de data/archivos, data/trabajo y .claude/skills. Pediste: ${ruta}`;
+    const ruta = input.file_path ?? input.path ?? "";
+    const patron = String(input.pattern ?? input.glob ?? "");
+    if (/(^|\/)\.env/.test(ruta + patron)) return "Está prohibido leer archivos .env";
+    if (patron.startsWith("/") || patron.includes("..") || patron.startsWith("~")) return "El patrón de búsqueda tiene que ser relativo y sin '..'";
+    if (tool === "Read" && !ruta) return "Read necesita una ruta";
+    const base = ruta || DATOS;
+    if (dentroDe(base, ARCHIVOS) || dentroDe(base, TRABAJO) || dentroDe(base, SKILLS)) return null;
+    return `Solo podés leer dentro de data/archivos, data/trabajo y .claude/skills. Pediste: ${base}`;
   }
 
-  // Escritura local: únicamente la carpeta de trabajo del tablero.
+  // Escritura local: únicamente la carpeta de trabajo DE ESTE tablero.
   if (tool === "Write" || tool === "Edit" || tool === "MultiEdit" || tool === "NotebookEdit") {
-    if (tool === "Write" && dentroDe(input.file_path, TRABAJO)) return null;
-    return "Solo podés escribir archivos nuevos dentro de data/trabajo";
+    if (tool !== "Write") return "Solo podés crear archivos nuevos con Write";
+    if (!TABLERO_ID) return "No hay tablero en curso; no se puede escribir";
+    if (dentroDe(input.file_path, MI_TRABAJO)) return null;
+    return `Solo podés escribir dentro de data/trabajo/${limpio(TABLERO_ID)}`;
   }
 
   // Shell: solo pdftotext sobre archivos subidos, sin encadenar nada.
   if (tool === "Bash") {
     const cmd = String(input.command ?? "").trim();
-    if (/[;&|<>`$\\]/.test(cmd)) return "No se permiten comandos encadenados, redirecciones ni variables";
+    if (/[;&|<>`$\\\n]/.test(cmd)) return "No se permiten comandos encadenados, redirecciones ni variables";
     const partes = cmd.split(/\s+/);
     if (partes[0] !== "pdftotext") return "El único comando permitido es pdftotext";
     const rutas = partes.slice(1).filter((p) => !p.startsWith("-"));
     if (rutas.length === 0 || rutas.length > 2) return "pdftotext necesita el PDF de entrada y, opcionalmente, un .txt de salida";
     if (!dentroDe(rutas[0], ARCHIVOS) || !rutas[0].endsWith(".pdf")) return "El PDF tiene que estar en data/archivos";
-    if (rutas[1] && rutas[1] !== "-" && !(dentroDe(rutas[1], TRABAJO) && rutas[1].endsWith(".txt"))) return "La salida tiene que ser un .txt en data/trabajo";
+    if (rutas[1] && rutas[1] !== "-" && !(dentroDe(rutas[1], MI_TRABAJO) && rutas[1].endsWith(".txt"))) return "La salida tiene que ser un .txt en la carpeta de trabajo del tablero";
     return null;
   }
 
-  if (tool === "Skill" || tool === "TodoWrite" || tool === "ToolSearch") return null;
+  if (tool === "Skill") return SKILLS_PERMITIDAS.includes(String(input.skill)) ? null : `Solo podés usar las skills ${SKILLS_PERMITIDAS.join(" y ")}`;
+  if (tool === "TodoWrite" || tool === "ToolSearch") return null;
 
-  // Google Calendar
+  // Google Calendar: campos exactos, nunca "contiene".
   if (tool.startsWith("mcp__claude_ai_Google_Calendar__")) {
     const accion = tool.split("__").pop();
     if (accion === "list_calendars") return null;
     if (["list_events", "search_events", "get_event"].includes(accion)) {
-      // Lectura solo del calendario de CUBO Board y del de clases, nunca de los demás de la cuenta.
-      const texto = JSON.stringify(input);
       const permitidos = [CALENDARIO_ID, CALENDARIO_CLASES_ID].filter(Boolean);
-      if (permitidos.some((id) => texto.includes(id))) return null;
-      return "Solo podés consultar el calendario de CUBO Board y el calendario de clases";
+      if (permitidos.includes(input.calendarId)) return null;
+      return "Solo podés consultar el calendario de CUBO Board y el calendario de clases (calendarId exacto)";
     }
     if (accion !== "create_event") return `Acción de calendario no permitida: ${accion}. El agente solo crea eventos.`;
     if (MODO !== "accion") return "Crear un evento requiere la aprobación del estudiante. Proponelo en una tarjeta de aprobación.";
     if (!CALENDARIO_ID) return "No hay calendario de CUBO Board configurado";
-    const texto = JSON.stringify(input);
-    if (!texto.includes(CALENDARIO_ID)) return "Solo podés crear eventos en el calendario de CUBO Board";
-    if (/attendee|invitad|asistente/i.test(texto)) return "No podés invitar a nadie a un evento";
+    if (input.calendarId !== CALENDARIO_ID) return "Solo podés crear eventos en el calendario de CUBO Board (calendarId exacto)";
+    if ("attendees" in input || "guests" in input || "invitados" in input) return "No podés invitar a nadie a un evento";
     const aprobada = cargarAprobada();
-    if (!aprobada) return "No hay ninguna acción aprobada pendiente";
-    for (const campo of [aprobada.titulo, aprobada.fecha]) {
-      if (!texto.includes(campo)) return `El evento no coincide con lo que aprobó el estudiante (falta: ${campo})`;
-    }
+    if (!aprobada?.titulo || !aprobada?.fecha) return "No hay ninguna acción aprobada pendiente";
+    if (input.summary !== aprobada.titulo) return "El título del evento no es exactamente el que aprobó el estudiante";
+    const inicio = String(input.startTime ?? input.start?.date ?? input.start ?? "");
+    if (!inicio.startsWith(aprobada.fecha)) return "La fecha del evento no es la que aprobó el estudiante";
     return null;
   }
 
-  // Google Drive
+  // Google Drive: solo crear dentro de la carpeta exacta. Sin búsquedas.
   if (tool.startsWith("mcp__claude_ai_Google_Drive__")) {
     const accion = tool.split("__").pop();
-    if (["search_files", "get_file_metadata"].includes(accion)) {
-      // Lectura solo de la carpeta de CUBO Board, nunca del resto del Drive.
-      const texto = JSON.stringify(input);
-      if ((CARPETA_DRIVE_ID && texto.includes(CARPETA_DRIVE_ID)) || /CUBO Board/i.test(texto)) return null;
-      return "Solo podés buscar dentro de la carpeta de CUBO Board";
-    }
-    if (accion !== "create_file") return `Acción de Drive no permitida: ${accion}. El agente solo crea archivos.`;
+    if (accion === "get_file_metadata") return CARPETA_DRIVE_ID && input.fileId === CARPETA_DRIVE_ID ? null : "Solo podés consultar la carpeta de CUBO Board";
+    if (accion !== "create_file") return `Acción de Drive no permitida: ${accion}. El agente solo crea archivos en la carpeta de CUBO Board.`;
     if (!CARPETA_DRIVE_ID) return "No hay carpeta de Drive de CUBO Board configurada";
-    if (!JSON.stringify(input).includes(CARPETA_DRIVE_ID)) return "Solo podés crear archivos dentro de la carpeta de CUBO Board";
+    if (input.parentId !== CARPETA_DRIVE_ID) return "Solo podés crear archivos con parentId igual a la carpeta de CUBO Board";
     return null;
   }
 
   return `Herramienta no permitida para este agente: ${tool}`;
 }
 
+// Las aprobaciones viven FUERA de la carpeta donde el agente puede escribir.
 function cargarAprobada() {
-  const archivo = path.join(TRABAJO, "aprobadas", `${ACCION_ID.replace(/[^\w-]/g, "")}.json`);
+  const archivo = path.join(DATOS, "aprobadas", `${limpio(ACCION_ID)}.json`);
   if (!ACCION_ID || !existsSync(archivo)) return null;
   try { return JSON.parse(readFileSync(archivo, "utf8")); } catch { return null; }
 }
@@ -103,7 +110,7 @@ function cargarAprobada() {
 const motivo = decidir();
 mkdirSync(path.join(RAIZ, "logs"), { recursive: true });
 appendFileSync(path.join(RAIZ, "logs", "acciones.jsonl"), JSON.stringify({
-  hora: new Date().toISOString(), sesion, modo: MODO, tool,
+  hora: new Date().toISOString(), sesion, modo: MODO, tablero: TABLERO_ID, tool,
   input: JSON.stringify(input).slice(0, 400),
   decision: motivo ? "bloqueada" : "permitida", motivo,
 }) + "\n");

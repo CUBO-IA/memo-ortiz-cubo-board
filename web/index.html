@@ -4,69 +4,96 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CUBO Board</title>
+<link rel="icon" href="isotipo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-<aside class="lateral">
-  <div class="marca"><span class="cubo"></span>CUBO <b>Board</b></div>
-  <p class="lema">Poné tus apuntes. El tablero se ordena solo.</p>
 
-  <form id="formTablero" class="nuevo">
-    <input id="nombreTablero" placeholder="Nombre de la clase" maxlength="120" required>
-    <input id="cursoTablero" placeholder="Curso (ej. CUBO AI)" maxlength="80">
-    <input id="fechaTablero" type="date">
-    <button class="btn" type="submit">Nuevo tablero</button>
-  </form>
-
-  <p class="etiqueta">Tableros</p>
-  <ul id="listaTableros" class="lista"></ul>
-
-  <div class="leyenda">
-    <span><i class="punto estudiante"></i>Tus tarjetas</span>
-    <span><i class="punto agente"></i>Del agente</span>
-    <span><i class="punto alerta"></i>Sospechoso</span>
-    <span><i class="punto aprobacion"></i>Espera tu aprobación</span>
+<!-- Lienzo -->
+<div id="lienzo" class="lienzo" data-herramienta="seleccionar">
+  <div id="capa" class="capa">
+    <svg id="conectores" class="conectores" aria-hidden="true"></svg>
+    <div id="tarjetas"></div>
+    <div id="estadoAgente" class="estado-agente" hidden><i></i><span>Leyendo…</span></div>
   </div>
+  <div id="vacio" class="vacio">
+    <img src="logo.png" alt="CUBO Board" class="vacio-logo">
+    <p>Arrastrá tus apuntes aquí para empezar.</p>
+  </div>
+  <div id="soltar" class="soltar" hidden></div>
+</div>
+
+<!-- Cabecera -->
+<header class="cabecera">
+  <button id="abrirTableros" class="titulo" type="button" title="Tableros">
+    <img src="isotipo.svg" alt="" class="iso">
+    <span>
+      <strong id="tituloTablero">CUBO Board</strong>
+      <small id="metaTablero"></small>
+    </span>
+  </button>
+</header>
+
+<!-- Herramientas -->
+<nav class="herramientas" aria-label="Herramientas">
+  <button data-accion="subir" title="Subir archivos (U)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <hr>
+  <button data-accion="tableros" title="Tableros"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+  <hr>
+  <button data-herramienta="seleccionar" class="activa" title="Seleccionar (V)"><svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-3 6z"/></svg></button>
+  <button data-herramienta="mano" title="Mover el lienzo (H)"><svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-7.5a1.5 1.5 0 0 1 3 0V12m0-5.5a1.5 1.5 0 0 1 3 0V13a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2.5-4a1.5 1.5 0 0 1 2.5-1.6L8 13"/></svg></button>
+  <button data-herramienta="nota" title="Nota (N)"><svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4"/></svg></button>
+  <button data-accion="buscar" title="Buscar (F)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
+  <hr>
+  <button data-accion="borrar" title="Borrar este tablero"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+</nav>
+
+<!-- Zoom y minimapa -->
+<div class="zoom">
+  <button id="zoomMenos" type="button" title="Alejar">−</button>
+  <span id="zoomValor">100%</span>
+  <button id="zoomMas" type="button" title="Acercar">+</button>
+  <button id="zoomAjustar" type="button" title="Ver todo">⤢</button>
+</div>
+<canvas id="minimapa" class="minimapa" width="220" height="132" title="Minimapa"></canvas>
+
+<!-- Buscar -->
+<div id="buscador" class="buscador" hidden>
+  <input id="textoBuscar" placeholder="Buscar en el tablero…" autocomplete="off">
+</div>
+
+<!-- Tableros -->
+<aside id="panelTableros" class="panel" hidden>
+  <div class="panel-cab">
+    <span>Tableros</span>
+    <button id="cerrarTableros" class="cerrar" type="button" title="Cerrar">×</button>
+  </div>
+  <form id="formTablero" class="panel-nuevo">
+    <input id="nombreTablero" placeholder="Nueva clase" maxlength="120" required>
+    <input id="cursoTablero" placeholder="Curso" maxlength="80">
+    <button type="submit">Crear</button>
+  </form>
+  <ul id="listaTableros" class="panel-lista"></ul>
 </aside>
 
-<main class="escenario">
-  <header class="barra">
-    <div>
-      <h1 id="tituloTablero">Elegí o creá un tablero</h1>
-      <p id="metaTablero" class="meta"></p>
+<!-- Primer tablero al soltar archivos -->
+<dialog id="dialogoPrimero" class="dialogo">
+  <form id="formPrimero" method="dialog">
+    <p class="dialogo-titulo">¿De qué clase son estos apuntes?</p>
+    <input id="primeroNombre" placeholder="Nombre de la clase" maxlength="120" required>
+    <input id="primeroCurso" placeholder="Curso (opcional)" maxlength="80">
+    <div class="dialogo-acciones">
+      <button type="button" value="cancel" id="primeroCancelar">Cancelar</button>
+      <button type="submit" class="primario">Crear tablero</button>
     </div>
-    <div class="acciones">
-      <span id="estadoAgente" class="estado" hidden></span>
-      <button id="borrarTablero" class="btn btn-ghost" type="button" title="Borrar este tablero">Borrar tablero</button>
-      <label class="btn btn-ghost">Subir archivos
-        <input id="archivos" type="file" multiple hidden
-               accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.md,.csv,.xlsx">
-      </label>
-    </div>
-  </header>
-
-  <div id="lienzo" class="lienzo">
-    <div id="capa" class="capa"></div>
-    <div id="vacio" class="vacio">
-      <p>Arrastrá fotos, PDF, Excel o notas aquí.</p>
-      <p class="meta">También podés escribir una nota abajo.</p>
-    </div>
-    <div id="soltar" class="soltar" hidden>Soltá para subir</div>
-  </div>
-
-  <form id="formNota" class="nota-rapida">
-    <textarea id="textoNota" rows="2" maxlength="5000"
-              placeholder="Escribí una nota de clase… (Enter para guardar, Shift+Enter para nueva línea)"></textarea>
-    <button class="btn" type="submit">Guardar nota</button>
   </form>
-</main>
+</dialog>
+
+<input id="archivos" type="file" multiple hidden accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.md,.csv,.xlsx">
 
 <template id="tplTarjeta">
-  <article class="tarjeta">
-    <header class="tarjeta-cab">
-      <span class="tarjeta-tipo"></span>
-      <button class="cerrar" title="Borrar tarjeta" type="button">×</button>
-    </header>
+  <article class="tarjeta" tabindex="0">
+    <header class="tarjeta-cab"><span class="tarjeta-tipo"></span><button class="cerrar" type="button" title="Borrar">×</button></header>
     <div class="tarjeta-cuerpo"></div>
     <footer class="tarjeta-pie" hidden></footer>
   </article>

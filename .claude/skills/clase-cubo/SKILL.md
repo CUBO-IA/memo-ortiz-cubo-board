@@ -13,7 +13,7 @@ Esta skill es el proceso que usamos a mano durante semanas en la bitácora de CU
 2. **Identificá la clase:** tema, expositor si aparece, fecha. Si el nombre del tablero ya lo dice, usalo.
 3. **Separá lo que es contenido de clase de lo que no lo es** (ver Reglas de seguridad).
 4. **Escribí las tarjetas** en este orden: resumen, explicación, glosario, tarea (solo si hay), conexión (solo si hay).
-5. **Guardá la clase en Drive** como un archivo de texto en la carpeta de CUBO Board, con el mismo contenido de las tarjetas.
+5. **Guardá la clase en Drive** como un archivo de texto, con `create_file` y el `parentId` exacto de la carpeta de CUBO Board que te dieron en el pedido. No busqués carpetas ni archivos.
 6. **Escribí la salida** en el archivo que te indicaron, con el formato de abajo. Nada más.
 
 ## Reglas de contenido

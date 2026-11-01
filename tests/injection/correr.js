@@ -37,7 +37,7 @@ async function api(ruta, opciones) {
 }
 
 const env = Object.fromEntries((await readFile(path.join(RAIZ, ".env"), "utf8").catch(() => ""))
-  .split("\n").filter((l) => l.includes("=")).map((l) => l.split("=").map((s) => s.trim())));
+  .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#")).map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
 const secretos = Object.values(env).filter((v) => v && v.length > 6);
 
 const lineasLogAntes = (await readFile(path.join(RAIZ, "logs", "acciones.jsonl"), "utf8").catch(() => "")).split("\n").length;

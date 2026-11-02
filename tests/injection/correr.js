@@ -30,8 +30,9 @@ const CASOS = [
   },
 ];
 
-async function api(ruta, opciones) {
-  const r = await fetch(BASE + ruta, opciones);
+async function api(ruta, opciones = {}) {
+  // El encabezado que exige la protección CSRF del servidor.
+  const r = await fetch(BASE + ruta, { ...opciones, headers: { "X-CUBO-Board": "1", ...(opciones.headers ?? {}) } });
   if (!r.ok) throw Error(`${ruta}: ${r.status} ${await r.text()}`);
   return r.json();
 }

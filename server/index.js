@@ -3,7 +3,7 @@
 import express from "express";
 import multer from "multer";
 import path from "node:path";
-import { open, unlink } from "node:fs/promises";
+import { open, unlink, readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { crearAlmacen } from "./almacen.js";
 import { crearLanzador } from "../agent/lanzador.js";
@@ -169,6 +169,29 @@ app.delete("/api/tableros/:id/tarjetas/:tid", async (req, res) => {
   res.status(ok ? 204 : 404).end();
 });
 
+// Repaso diario: el propio servidor lo lanza una vez al día, a partir de las
+// 7:00, sobre el tablero más reciente. Sin cron ni configuración del usuario.
+const HORA_REPASO = 7;
+const marcaRepaso = path.join(DATOS, "repaso.json");
+async function repasoDiario() {
+  const ahora = new Date();
+  if (ahora.getHours() < HORA_REPASO) return;
+  const hoy = ahora.toISOString().slice(0, 10);
+  let ultimo = null;
+  try { ultimo = JSON.parse(await readFile(marcaRepaso, "utf8")).fecha; } catch { /* nunca corrió */ }
+  if (ultimo === hoy) return;
+  const tableros = await almacen.listar();
+  if (tableros.length === 0) return;
+  await mkdir(DATOS, { recursive: true });
+  await writeFile(marcaRepaso, JSON.stringify({ fecha: hoy, inicio: ahora.toISOString() }));
+  try {
+    const resultado = await lanzador.repasar(tableros.at(-1).id);
+    console.log(`[repaso] ${resultado}`);
+  } catch (e) { console.error(`[repaso] ${e.message}`); }
+}
+
 app.listen(PUERTO, "127.0.0.1", () => {
   console.log(`CUBO Board en http://127.0.0.1:${PUERTO}`);
+  setTimeout(repasoDiario, 20_000);          // al arrancar, por si hoy no corrió
+  setInterval(repasoDiario, 15 * 60_000);    // y cada 15 minutos lo vuelve a comprobar
 });

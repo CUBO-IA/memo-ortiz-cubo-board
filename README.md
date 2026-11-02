@@ -26,7 +26,7 @@ Estudiante → tablero (notas, fotos, PDF, Excel)
 Tarea detectada → tarjeta "espera tu aprobación" → el estudiante aprueba
                 → el agente crea el evento SOLO en el calendario CUBO Board (MCP Google Calendar)
 
-Cron diario → agent/repaso.js → lee el calendario de clases y deja una tarjeta de repaso
+Cada día, el servidor → repaso → lee el calendario de clases y deja una tarjeta de repaso
 ```
 
 **Cuatro cosas que pasan en código, no en el modelo:** qué herramientas existen (`.claude/settings.json`), qué llamada se bloquea (`agent/guardia.js`), qué tarjeta entra al tablero (`agent/validar.js`) y qué evento se puede crear (solo el que el estudiante aprobó, comparado campo por campo).
@@ -48,13 +48,7 @@ Los dos vienen conectados a Claude Code desde los conectores de claude.ai (`clau
 ## Cómo se dispara la automatización
 
 1. **Por evento.** Cada nota o archivo que entra al tablero (`POST /api/tableros/:id/notas` o `/archivos`) llama a `lanzador.programar()`. Espera 8 segundos por si llegan varias cosas seguidas y lanza `claude -p` una sola vez. Nadie escribe en un chat.
-2. **Por horario.** `agent/repaso.js` corre una vez al día con cron y deja la tarjeta de repaso en el último tablero. Para activarlo (todos los días a las 7:00):
-
-   ```bash
-   crontab -e
-   # agregar esta línea, con la ruta de tu copia:
-   0 7 * * * cd /ruta/a/cubo-board && /usr/bin/env node agent/repaso.js >> logs/repaso.log 2>&1
-   ```
+2. **Por horario.** El propio servidor corre el repaso una vez al día, a partir de las 7:00, sobre el tablero más reciente. No hay cron ni nada que configurar: con la app abierta, el repaso llega solo. (`node agent/repaso.js` lo lanza a mano cuando se quiera.)
 
 3. **Por aprobación.** Cuando el estudiante aprueba agendar una tarea, el servidor lanza una segunda corrida en *modo acción* con un solo permiso: crear ese evento.
 
@@ -91,6 +85,8 @@ npm start                   # http://127.0.0.1:8790
 ```
 
 **Conectar Google.** En claude.ai, agregá los conectores de Google Drive y Google Calendar con la cuenta que vas a usar; Claude Code los toma solo. Comprobá con `claude mcp list` que aparezcan conectados.
+
+**Qué guarda en Drive.** La clase armada y el texto extraído de cada PDF, con la hora y el tema en el nombre, en una carpeta por tablero. Las imágenes y hojas de cálculo quedan en el tablero: subir binarios por el conector obligaría a pasar el archivo entero por el modelo. El siguiente paso sería que el servidor los suba directo con una credencial propia de Google, sin pasar por el agente.
 
 **Los IDs del `.env`.** Creá en esa cuenta un calendario llamado *CUBO Board* y una carpeta de Drive llamada *CUBO Board*. El ID del calendario está en su configuración, sección "Integrar calendario". El ID de la carpeta es lo que va después de `folders/` en su URL. `CALENDARIO_CLASES_ID` es opcional: el calendario de tu curso, que el agente solo lee. El `.env` lleva únicamente IDs, no llaves, y nunca se sube.
 

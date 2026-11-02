@@ -1,6 +1,5 @@
-// Repaso automático. Lo lanza un cron una vez al día (ver README). Mira qué
-// clase viene en el calendario de CUBO Board y qué tareas siguen pendientes,
-// y deja una tarjeta de repaso en el tablero más reciente. Nadie le escribe.
+// Repaso a mano. El servidor ya lo corre solo una vez al día (server/index.js);
+// este script sirve para lanzarlo cuando uno quiera o desde un cron propio.
 //
 //   node agent/repaso.js
 import path from "node:path";

@@ -81,12 +81,17 @@ function decidir() {
     if (MODO !== "accion") return "Crear un evento requiere la aprobación del estudiante. Proponelo en una tarjeta de aprobación.";
     if (!CALENDARIO_ID) return "No hay calendario de CUBO Board configurado";
     if (input.calendarId !== CALENDARIO_ID) return "Solo podés crear eventos en el calendario de CUBO Board (calendarId exacto)";
-    if ("attendees" in input || "guests" in input || "invitados" in input) return "No podés invitar a nadie a un evento";
+    // Lista blanca de campos: nada de invitados, descripción, adjuntos, Meet ni recurrencia, con el nombre que sea.
+    const CAMPOS_EVENTO = new Set(["calendarId", "summary", "startTime", "endTime", "allDay", "notificationLevel"]);
+    const extra = Object.keys(input).filter((k) => !CAMPOS_EVENTO.has(k));
+    if (extra.length) return `Campos no permitidos en el evento: ${extra.join(", ")}`;
     const aprobada = cargarAprobada();
     if (!aprobada?.titulo || !aprobada?.fecha) return "No hay ninguna acción aprobada pendiente";
     if (input.summary !== aprobada.titulo) return "El título del evento no es exactamente el que aprobó el estudiante";
-    const inicio = String(input.startTime ?? input.start?.date ?? input.start ?? "");
-    if (!inicio.startsWith(aprobada.fecha)) return "La fecha del evento no es la que aprobó el estudiante";
+    if (input.allDay !== true) return "El evento tiene que ser de día completo";
+    if (String(input.startTime ?? "").slice(0, 10) !== aprobada.fecha) return "La fecha del evento no es la que aprobó el estudiante";
+    const fin = String(input.endTime ?? "").slice(0, 10);
+    if (fin && fin !== aprobada.fecha && fin !== diaSiguiente(aprobada.fecha)) return "La fecha de fin no corresponde al día aprobado";
     return null;
   }
 
@@ -102,6 +107,10 @@ function decidir() {
     if (accion === "get_file_metadata") return CARPETA_DRIVE_ID && input.fileId === CARPETA_DRIVE_ID ? null : "Solo podés consultar la carpeta de CUBO Board";
     if (accion !== "create_file") return `Acción de Drive no permitida: ${accion}. El agente solo crea archivos en la carpeta de CUBO Board.`;
     if (!CARPETA_DRIVE_ID) return "No hay carpeta de Drive de CUBO Board configurada";
+    // Lista blanca de campos: solo texto plano; nada de permisos, ids pregenerados ni contenido binario.
+    const CAMPOS_ARCHIVO = new Set(["title", "parentId", "contentMimeType", "textContent", "disableConversionToGoogleType", "mimeType"]);
+    const extraArchivo = Object.keys(input).filter((k) => !CAMPOS_ARCHIVO.has(k));
+    if (extraArchivo.length) return `Campos no permitidos al crear en Drive: ${extraArchivo.join(", ")}`;
     const esCarpeta = /vnd\.google-apps\.folder/.test(JSON.stringify(input));
     if (esCarpeta) return input.parentId === CARPETA_DRIVE_ID ? null : "Solo podés crear carpetas directamente dentro de la carpeta de CUBO Board";
     const carpetaTablero = carpetaDelTablero();
@@ -110,6 +119,11 @@ function decidir() {
   }
 
   return `Herramienta no permitida para este agente: ${tool}`;
+}
+
+function diaSiguiente(fecha) {
+  const d = new Date(`${fecha}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 // La carpeta de Drive de cada tablero la anota el hook registro-drive.js en

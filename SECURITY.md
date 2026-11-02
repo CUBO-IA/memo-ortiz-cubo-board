@@ -8,7 +8,7 @@ Fecha: 1 de noviembre de 2026. Alcance: todo el repositorio. Auditor: Memo Ortiz
 |---|---|---|
 | Dependencias | `npm audit` | 0 vulnerabilidades (express 5.3, multer 2.5) |
 | Secretos en el código y en el historial | `git log -p --all` con patrones de llaves (`api_key`, `token`, `sk-`, `AKIA`, `ghp_`, `BEGIN PRIVATE KEY`), `git ls-files` | Ninguna llave. El proyecto no tiene ninguna: Claude Code usa la sesión del usuario. `.env` solo lleva IDs de calendario y carpeta, y nunca entró al historial |
-| Análisis del código | Revisión independiente con Claude (subagente `general-purpose`, solo lectura), con la lógica del guardia reproducida aparte para buscar *bypasses*. `/security-review` de Claude Code queda para correrlo contra el repositorio remoto | 2 hallazgos altos, 4 medios, 5 bajos: todos corregidos (abajo) |
+| Análisis del código | Dos revisiones independientes con Claude (subagentes `general-purpose`, solo lectura, sin haber visto el código antes). La primera reprodujo la lógica del guardia aparte para buscar *bypasses*; la segunda, con los criterios del `/security-review` de Claude Code (solo hallazgos con más de 80 % de confianza), verificó además los esquemas reales de los MCP de Google. `/security-review` como tal no tenía diferencias que revisar porque la rama ya estaba subida | 1.ª: 2 altos, 4 medios, 5 bajos. 2.ª: 1 alto. Todos corregidos (abajo) |
 | Prompt injection | 3 ataques reales en `tests/injection/`, corridos contra el agente vivo | 7 de 7 chequeos; ver `tests/injection/resultado.md` |
 | Permisos | Revisión de `.claude/settings.json` y `agent/guardia.js` herramienta por herramienta | Tabla abajo |
 
@@ -26,6 +26,7 @@ Fecha: 1 de noviembre de 2026. Alcance: todo el repositorio. Auditor: Memo Ortiz
 | Baja | El agente podía cargar cualquier skill instalada en la cuenta | Solo `clase-cubo` y `pdf` |
 | Baja | Archivos servidos con el tipo que declaró el navegador | Firma real (*magic bytes*) de PNG, JPG, WebP, PDF y XLSX verificada tras subir; `X-Content-Type-Options: nosniff`; descarga forzada para lo que no es imagen |
 | Baja | Corridas concurrentes sobre el mismo tablero; una promesa sin `catch` podía tumbar el servidor | Si llegan apuntes mientras el agente trabaja, se vuelve a lanzar al terminar; todas las promesas con `catch` |
+| Alta (2.ª revisión) | La regla "no invitar a nadie" era una lista negra de tres nombres de campo; el conector de Calendar también acepta `attendeeEmails`, además de `description`, `attachments`, Meet y recurrencia. Un apunte malicioso podía lograr que el evento aprobado saliera con un invitado externo y datos en la descripción | `create_event` pasó a **lista blanca**: solo `calendarId`, `summary`, `startTime`, `endTime`, `allDay` y `notificationLevel`; cualquier otro campo se bloquea. Además exige día completo y fin en el mismo día o el siguiente. `create_file` de Drive también pasó a lista blanca (sin contenido binario, permisos ni ids pregenerados) |
 | Baja | El registro del guardia (`logs/acciones.jsonl`) entró al historial de git en los primeros commits, con IDs de calendario y carpeta | Historial reescrito antes de publicar; `logs/` y `data/` ignorados. Verificado con `git log --all` |
 
 ## Permisos: qué puede hacer cada herramienta y cada MCP
@@ -37,7 +38,7 @@ Fecha: 1 de noviembre de 2026. Alcance: todo el repositorio. Auditor: Memo Ortiz
 | `Bash` | `pdftotext [opciones] data/archivos/x.pdf [- | data/trabajo/<tablero>/x.txt]` | Cualquier otro comando; `; & | < > \` $ \\` |
 | `Skill` | `clase-cubo`, `pdf` | Las demás skills de la cuenta |
 | Google Drive | `create_file` con `parentId` = carpeta CUBO Board; `get_file_metadata` de esa carpeta | Buscar, leer, descargar, compartir, mover, borrar, listar recientes |
-| Google Calendar | Leer los dos calendarios configurados (ID exacto); `create_event` solo en modo acción, solo en CUBO Board, solo el evento aprobado, sin invitados | Borrar, modificar, responder, sugerir horarios; cualquier otro calendario |
+| Google Calendar | Leer los dos calendarios configurados (ID exacto); `create_event` solo en modo acción, solo en CUBO Board, solo el evento aprobado, solo con los seis campos de la lista blanca | Borrar, modificar, responder, sugerir horarios; cualquier otro calendario; invitados, descripción, adjuntos, Meet, recurrencia |
 | Otros conectores (Gmail, Docs, Dropbox, Linear) | — | Todo, en `deny` |
 | `WebFetch`, `WebSearch`, `Agent` | — | Todo |
 

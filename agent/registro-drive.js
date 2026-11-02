@@ -12,9 +12,15 @@ const entrada = JSON.parse(readFileSync(0, "utf8"));
 const { tool_name: tool = "", tool_input: input = {}, tool_response: respuesta = "" } = entrada;
 const { TABLERO_ID = "", CARPETA_DRIVE_ID = "", MODO = "" } = process.env;
 
+// Primero intenta leer la respuesta como JSON y tomar su campo id; la regex es solo respaldo.
 const extraerId = (r) => {
   const t = typeof r === "string" ? r : JSON.stringify(r);
-  return t.match(/"id"\s*:\s*"([-\w]{20,})"/)?.[1] ?? t.match(/folders\/([-\w]{20,})/)?.[1] ?? t.match(/\b([-\w]{25,})\b/)?.[1] ?? null;
+  try {
+    const o = typeof r === "string" ? JSON.parse(r) : r;
+    const id = o?.id ?? o?.file?.id ?? (Array.isArray(o?.content) ? JSON.parse(o.content[0]?.text ?? "{}")?.id : null);
+    if (typeof id === "string" && /^[-\w]{20,}$/.test(id)) return id;
+  } catch { /* no era JSON */ }
+  return t.match(/"id"\s*:\s*"([-\w]{20,})"/)?.[1] ?? null;
 };
 
 // Instalación: la carpeta raíz recién creada va a data/drive/raiz.json.

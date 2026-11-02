@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test tests/"
+    "test": "node --test tests/",
+    "instalar": "./instalar.sh"
   },
   "engines": {
     "node": ">=22"

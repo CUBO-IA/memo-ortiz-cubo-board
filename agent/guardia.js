@@ -43,6 +43,7 @@ function decidir() {
 
   // Escritura local: únicamente la carpeta de trabajo DE ESTE tablero.
   if (tool === "Write" || tool === "Edit" || tool === "MultiEdit" || tool === "NotebookEdit") {
+    if (MODO === "instalacion") return "En la instalación no se escriben archivos";
     if (tool !== "Write") return "Solo podés crear archivos nuevos con Write";
     if (!TABLERO_ID) return "No hay tablero en curso; no se puede escribir";
     if (dentroDe(input.file_path, MI_TRABAJO)) return null;
@@ -51,6 +52,7 @@ function decidir() {
 
   // Shell: solo pdftotext sobre archivos subidos, sin encadenar nada.
   if (tool === "Bash") {
+    if (MODO === "instalacion") return "En la instalación no se corren comandos";
     const cmd = String(input.command ?? "").trim();
     if (/[;&|<>`$\\\n]/.test(cmd)) return "No se permiten comandos encadenados, redirecciones ni variables";
     const partes = cmd.split(/\s+/);
@@ -68,6 +70,7 @@ function decidir() {
   // Google Calendar: campos exactos, nunca "contiene".
   if (tool.startsWith("mcp__claude_ai_Google_Calendar__")) {
     const accion = tool.split("__").pop();
+    if (MODO === "instalacion") return "En la instalación no se toca el calendario";
     if (accion === "list_calendars") return null;
     if (["list_events", "search_events", "get_event"].includes(accion)) {
       const permitidos = [CALENDARIO_ID, CALENDARIO_CLASES_ID].filter(Boolean);
@@ -90,6 +93,12 @@ function decidir() {
   // Google Drive: solo crear dentro de la carpeta exacta. Sin búsquedas.
   if (tool.startsWith("mcp__claude_ai_Google_Drive__")) {
     const accion = tool.split("__").pop();
+    if (MODO === "instalacion") {
+      // El instalador solo puede crear la carpeta raíz "CUBO Board", nada más.
+      const esCarpeta = /vnd\.google-apps\.folder/.test(JSON.stringify(input));
+      if (accion === "create_file" && esCarpeta && input.title === "CUBO Board" && !input.parentId) return null;
+      return "En la instalación solo se puede crear la carpeta raíz \"CUBO Board\"";
+    }
     if (accion === "get_file_metadata") return CARPETA_DRIVE_ID && input.fileId === CARPETA_DRIVE_ID ? null : "Solo podés consultar la carpeta de CUBO Board";
     if (accion !== "create_file") return `Acción de Drive no permitida: ${accion}. El agente solo crea archivos en la carpeta de CUBO Board.`;
     if (!CARPETA_DRIVE_ID) return "No hay carpeta de Drive de CUBO Board configurada";

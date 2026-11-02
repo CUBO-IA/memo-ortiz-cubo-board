@@ -74,21 +74,27 @@ node tests/injection/correr.js
 
 ## Instalar y correr
 
-Necesitás macOS o Linux con Node 22+, [Claude Code](https://code.claude.com) iniciado con tu cuenta, y `pdftotext` (`brew install poppler`).
+Un solo comando, en macOS o Linux. Instala lo que falte (Node, pdftotext, Claude Code), te guía paso a paso en lo que pasa dentro de tu cuenta de Google, y deja CUBO Board corriendo en http://127.0.0.1:8790:
 
 ```bash
-git clone <este repositorio> cubo-board && cd cubo-board
-npm install
-cp .env.example .env        # completá los IDs (ver abajo)
-claude                      # abrí Claude Code una vez aquí y aceptá el diálogo de confianza; salí con /exit
-npm start                   # http://127.0.0.1:8790
+git clone https://github.com/CUBO-IA/memo-ortiz-cubo-board.git && cd memo-ortiz-cubo-board && ./instalar.sh
 ```
 
-**Conectar Google.** En claude.ai, agregá los conectores de Google Drive y Google Calendar con la cuenta que vas a usar; Claude Code los toma solo. Comprobá con `claude mcp list` que aparezcan conectados.
+Lo que hace el instalador, en orden:
 
-**Qué guarda en Drive.** La clase armada y el texto extraído de cada PDF, con la hora y el tema en el nombre, en una carpeta por tablero. Las imágenes y hojas de cálculo quedan en el tablero: subir binarios por el conector obligaría a pasar el archivo entero por el modelo. El siguiente paso sería que el servidor los suba directo con una credencial propia de Google, sin pasar por el agente.
+1. **Node 22+ y pdftotext.** Si faltan, los instala con Homebrew o te dice de dónde bajarlos.
+2. **Claude Code.** Si no está, lo instala con el instalador oficial de Anthropic y abre el navegador para que iniciés sesión con tu cuenta de Claude. Es lo que trae el modelo: no hay ninguna llave que pegar.
+3. **El proyecto.** Instala dependencias y marca la carpeta como confiable para Claude Code.
+4. **Google Drive y Google Calendar.** Abre la página de conectores de claude.ai y te dice exactamente qué hacer: conectar Drive, conectar Calendar, con la misma cuenta, y permitir. Es lo único que no puede hacer por vos: son autorizaciones de tu cuenta de Google.
+5. **La carpeta de Drive** la crea el agente solo, en modo instalación, con un único permiso: crear la carpeta raíz "CUBO Board".
+6. **El calendario CUBO Board.** Google no permite crearlo desde afuera, así que te abre la página de "Crear calendario" con los cinco pasos escritos y te pide pegar el ID.
+7. **Arranca** el servidor y abre http://127.0.0.1:8790 en tu navegador.
 
-**Los IDs del `.env`.** Creá en esa cuenta un calendario llamado *CUBO Board* y una carpeta de Drive llamada *CUBO Board*. El ID del calendario está en su configuración, sección "Integrar calendario". El ID de la carpeta es lo que va después de `folders/` en su URL. `CALENDARIO_CLASES_ID` es opcional: el calendario de tu curso, que el agente solo lee. El `.env` lleva únicamente IDs, no llaves, y nunca se sube.
+Para abrirlo otro día:
+
+```bash
+cd memo-ortiz-cubo-board && npm start
+```
 
 **Usar.** Arrastrá tus apuntes al lienzo negro: la primera vez te pregunta de qué clase son y crea el tablero. Desde ahí todo lo que sueltes cae en ese tablero. Con la herramienta de nota (o doble clic en el lienzo) escribís directo en el canvas. Debajo de lo último que subiste aparece "Leyendo tus apuntes…" y en menos de un minuto llegan las tarjetas del agente, unidas con una línea a los apuntes de donde salieron. Si detectó una tarea, aprobá agendarla con un clic.
 
